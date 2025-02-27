@@ -7,51 +7,41 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
-# Load dataset
 df = pd.read_csv('weatherAUS.csv')
 
-# Replace 'NA' with NaN
 df.replace("NA", np.nan, inplace=True)
 
-# Drop rows where target variables are missing
 df.dropna(subset=['RainToday', 'RainTomorrow'], inplace=True)
 
-# Convert date to datetime format
 df['Date'] = pd.to_datetime(df['Date'])
 
-# Extract date components
 df['Year'] = df['Date'].dt.year
 df['Month'] = df['Date'].dt.month
 df['Day'] = df['Date'].dt.day
 
-# Drop original Date column
 df.drop(columns=['Date'], inplace=True)
 
-num_cols = df.select_dtypes(include=['number']).columns
-cat_cols = df.select_dtypes(include=['object']).columns
+df_num_cols = df.select_dtypes(include=['number']).columns
+df_cat_cols = df.select_dtypes(include=['object']).columns
 
 # Fill numerical columns using group mean or fallback to global mean
-df[num_cols] = df.groupby('Location')[num_cols].transform(lambda x: x.fillna(x.mean()))
-df[num_cols] = df[num_cols].fillna(df[num_cols].mean())  # Fill any remaining NaN values
+df[df_num_cols] = df.groupby('Location')[df_num_cols].transform(lambda x: x.fillna(x.mean()))
+df[df_num_cols] = df[df_num_cols].fillna(df[df_num_cols].mean())  # Fill any remaining NaN values
 
 # Fill categorical columns using group mode or fallback to global mode
-for col in cat_cols:
+for col in df_cat_cols:
     df[col] = df.groupby('Location')[col].transform(lambda x: x.fillna(x.mode()[0] if not x.mode().empty else df[col].mode()[0]))
 
 
-# Separate features (X) and target (Y)
 X = df.drop(columns=['RainToday', 'RainTomorrow'])
 Y = df[['RainToday', 'RainTomorrow']].copy()
 
-# Convert target variables to binary (0/1)
 Y['RainToday'] = Y['RainToday'].map({'Yes': 1, 'No': 0})
 Y['RainTomorrow'] = Y['RainTomorrow'].map({'Yes': 1, 'No': 0})
 
-# Identify numerical and categorical columns
 num_cols = X.select_dtypes(include=['number']).columns
 cat_cols = X.select_dtypes(include=['object']).columns
 
-# Split data first to prevent data leakage
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=1)
 
 # Handle missing values separately for training and testing
